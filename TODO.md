@@ -1,0 +1,7 @@
+- make code idempotent
+- document css applied
+- own debounce method
+- typescript integration
+- bundle and cdn accessible
+- publish to npmjs 
+- public to #GPM
