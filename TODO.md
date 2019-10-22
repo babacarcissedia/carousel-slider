@@ -1,3 +1,4 @@
+- dot indicators
 - make code idempotent
 - document css applied
 - own debounce method

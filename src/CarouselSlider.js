@@ -8,6 +8,16 @@
 // TODO: add navigation indicators
 import debounce from 'lodash.debounce'
 
+const createButton = (className, icon) => {
+  const icons = icon.split(' ')
+  const button = document.createElement('button')
+  button.classList.add(className)
+  const iconElement = document.createElement('i')
+  iconElement.classList.add(...icons)
+  button.appendChild(iconElement)
+  return button
+}
+
 /**
  * @property {object} errors
  * @property {number} index
@@ -52,56 +62,52 @@ export default class CarouselSlider {
     if (!this.options.container) {
       this.options.container = document.body
     }
-    // if (this.options.container.classList.contains(this.options.carouselSetClass)) {
-    //   console.warn(`[CarouselSlider::CarouselSlider] container %s have carousel slider already already set`, this.options.container)
-    //   return
-    // }
-    this.options.container.classList.add(this.options.carouselSetClass)
+    if (this.options.container.classList.contains(this.options.carouselSetClass)) {
+      // console.warn(`[CarouselSlider::CarouselSlider] container %s have carousel slider already set`, this.options.container)
+      return
+    }
     this.$elements = this.options.container.querySelectorAll(this.options.selector)
+    // check if carousel not already set. Yes code should be idempotent
     this.checkRequirements()
     if (!this.requirementsAreMet()) {
       throw new Error('[CarouselSlider] Missing parameters: ' + JSON.stringify(this.errors))
     }
-    this.addAdditionalStyles()
     this.$nextButton = null
     this.$previousButton = null
-    this.$wrapper = null
+    this.$wrapper = this.options.container.querySelector(this.options.wrapperSelector)
     this.addNavigationButtons()
     // TODO: this.addDotIndicators()
     this.index = 0
     this.setUpResponsive()
     this.init(this.options)
     this.setAccessibilities()
+    this.options.container.classList.add(this.options.carouselSetClass)
   }
 
   init () {
     this.pageCount = Math.ceil(this.$elements.length / this.options.slidesVisible)
-    console.log('elements: %s, slides visible: %s, page count is now %s', this.$elements, this.options.slidesVisible, this.pageCount)
+    // console.log('elements: %s, slides visible: %s, page count is now %s. Going to slide index %s',
+    // this.$elements, this.options.slidesVisible, this.pageCount, this.index)
     this.goToSlide(this.index)
     this.setStyle()
   }
 
   addNavigationButtons () {
-    const addButton = (className, icon) => {
-      const icons = icon.split(' ')
-      const button = document.createElement('button')
-      button.classList.add(className)
-      const iconElement = document.createElement('i')
-      iconElement.classList.add(...icons)
-      button.appendChild(iconElement)
-      this.options.container.append(button)
-      return button
+    if (!this.$wrapper) {
+      console.warn(`[CarouselSlider::addNavigationButtons] No options.wrapperSelector found for value: ${this.options.wrapperSelector}`)
+      return false
     }
-    this.$wrapper = this.options.container.querySelector(this.options.wrapperSelector)
     this.$nextButton = this.$wrapper.querySelector(this.options.nextButtonClass)
     if (!this.$nextButton) {
-      this.$nextButton = addButton(this.options.nextButtonClass, this.options.nextButtonClassIcon)
+      this.$nextButton = createButton(this.options.nextButtonClass, this.options.nextButtonClassIcon)
       this.$nextButton.addEventListener('click', () => this.next())
+      this.options.container.append(this.$nextButton)
     }
     this.$previousButton = this.$wrapper.querySelector(this.options.previousButtonClass)
     if (!this.$previousButton) {
-      this.$previousButton = addButton(this.options.previousButtonClass, this.options.previousButtonClassIcon)
+      this.$previousButton = createButton(this.options.previousButtonClass, this.options.previousButtonClassIcon)
       this.$previousButton.addEventListener('click', () => this.previous())
+      this.options.container.append(this.$previousButton)
     }
   }
 
@@ -129,43 +135,6 @@ export default class CarouselSlider {
     this.options.container.appendChild(list)
   }
 
-  addAdditionalStyles () {
-    // .fare-option-next,
-    // .fare-option-previous {
-    //     position: absolute;
-    //     width: 30px;
-    //     height: 30px;
-    //     color: var(--default-color);
-    //     z-index: 2;
-    //     background: none;
-    //     transition: all .3s;
-    //     border: 2px solid transparent;
-    //     cursor: pointer;
-    //     border-radius: 3px;
-    //   & .fa {
-    //       transition: all .3s;
-    //     }
-    //   &:hover {
-    //     & .fa {
-    //         transform: scale(1.4);
-    //       }
-    //       color: var(--primary-color);
-    //       //border-color: var(--primary-color)
-    //     }
-    //   }
-    // @media only screen and (min-width: 680px) {
-    //   .fare-option {
-    //       width: 33.33%;
-    //       float: left;
-    //     }
-    //   .fare-options::after {
-    //       content: '';
-    //       display: table;
-    //       clear: both;
-    //     }
-    //   }
-  }
-
   checkRequirements () {
     this.errors = {}
     if (!this.options.selector) {
@@ -178,11 +147,13 @@ export default class CarouselSlider {
   }
 
   setStyle () {
+    // no need of the line below since we are using flex
     // const ratio = this.$elements.length / this.options.slidesVisible
     // this.$wrapper.style.width = (ratio * 100) + '%'
-    console.log('settings slides visible to %s', this.options.slidesVisible)
-    this.$elements.forEach($element => $element.style.flex = '0 0 ' + (100 / this.options.slidesVisible) + '%')
     // this.$elements.forEach($element => $element.style.width = ((100 / this.options.slidesVisible) / ratio) + '%')
+
+    // flex method
+    this.$elements.forEach($element => $element.style.flex = '0 0 ' + (100 / this.options.slidesVisible) + '%')
   }
 
   setUpResponsive () {
@@ -199,12 +170,11 @@ export default class CarouselSlider {
     // TODO: make idempotent
     this.resizeHandler = debounce((e) => {
       // find the greater media query matching
-      console.log({wWidth: window.innerWidth, options: this.options.responsive})
       let medias = this.options.responsive.filter(option => option.breakpoint <= window.innerWidth)
       if (medias.length === 0) {
-        console.log('no media found matching %s', window.innerWidth)
+        // console.log('no media found matching %s', window.innerWidth)
         if (JSON.stringify(this._options) !== JSON.stringify(this.options)) {
-          console.log('applied options are not the one received. resetting')
+          // console.log('applied options are not the one received. resetting')
           this.options = JSON.parse(JSON.stringify(this._options))
           this.init()
         }
@@ -213,7 +183,6 @@ export default class CarouselSlider {
       // sort by breakpoint DESC
       medias = medias.sort((mediaA, mediaB) => mediaB.breakpoint - mediaA.breakpoint)
       if (medias[0]) {
-        console.log('media is defined %o', medias)
         this.options = Object.assign({}, this.options, medias[0].settings)
         this.init()
       }
@@ -239,12 +208,13 @@ export default class CarouselSlider {
     }
     // this.indicators[this.index].classList.add('active')
     const value = -this.index * 100 / this.options.slidesVisible
-    this.$wrapper.style.transform = `translate3d(${value}%, 0, 0)`
+    // this.$wrapper.style.transform = `translate3d(${value}%, 0, 0)`
+    // console.log('has slide before: %s %o, has slide after: %s %o', this.hasSlideBefore, this.$previousButton, this.hasSlideAfter, this.$nextButton)
+    this.$previousButton.style.display = !this.hasSlideBefore ? 'none' : 'block'
+    this.$nextButton.style.display = !this.hasSlideAfter ? 'none' : 'block'
     if (this.options.infinite) {
       return false
     }
-    this.$previousButton.style.display = !this.hasSlideBefore ? 'none' : 'block'
-    this.$nextButton.style.display = !this.hasSlideAfter ? 'none' : 'block'
   }
 
   get hasSlideBefore () {
@@ -273,6 +243,7 @@ export default class CarouselSlider {
 
   dispose () {
     window.removeEventListener('resize', this.resizeHandler)
-    // TODO: remove keyup listener
+    // TODO: remove keyup listener. @see setAccessibilities
+    // TODO: remove dot indicator
   }
 }
