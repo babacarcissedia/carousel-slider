@@ -62,15 +62,14 @@ export default class CarouselSlider {
     if (!this.options.container) {
       this.options.container = document.body
     }
-    if (this.options.container.classList.contains(this.options.carouselSetClass)) {
-      // console.warn(`[CarouselSlider::CarouselSlider] container %s have carousel slider already set`, this.options.container)
-      return
-    }
     this.$elements = this.options.container.querySelectorAll(this.options.selector)
     // check if carousel not already set. Yes code should be idempotent
-    this.checkRequirements()
     if (!this.requirementsAreMet()) {
       throw new Error('[CarouselSlider] Missing parameters: ' + JSON.stringify(this.errors))
+    }
+    if (this.options.container.classList.contains(this.options.carouselSetClass)) {
+      console.warn(`[CarouselSlider::CarouselSlider] container %s have carousel slider already set`, this.options.container)
+      return
     }
     this.$nextButton = null
     this.$previousButton = null
@@ -135,14 +134,12 @@ export default class CarouselSlider {
     this.options.container.appendChild(list)
   }
 
-  checkRequirements () {
+  requirementsAreMet () {
     this.errors = {}
     if (!this.options.selector) {
       this.errors['selector'] = 'Selector parameter is missing'
     }
-  }
 
-  requirementsAreMet () {
     return Object.keys(this.errors).length === 0
   }
 
@@ -208,7 +205,7 @@ export default class CarouselSlider {
     }
     // this.indicators[this.index].classList.add('active')
     const value = -this.index * 100 / this.options.slidesVisible
-    // this.$wrapper.style.transform = `translate3d(${value}%, 0, 0)`
+    this.$wrapper.style.transform = `translate3d(${value}%, 0, 0)`
     // console.log('has slide before: %s %o, has slide after: %s %o', this.hasSlideBefore, this.$previousButton, this.hasSlideAfter, this.$nextButton)
     this.$previousButton.style.display = !this.hasSlideBefore ? 'none' : 'block'
     this.$nextButton.style.display = !this.hasSlideAfter ? 'none' : 'block'
